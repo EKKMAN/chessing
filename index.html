@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chessing — Minimalist Online Chess</title>
 
-  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <!-- Google Fonts: Outfit & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -16,49 +16,51 @@
   <!-- Chess.js for 100% compliant chess rules & legal move validation -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 
-  <!-- PeerJS for Serverless P2P Multiplayer (Private Rooms, Spectators & Random Queue) -->
-  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <!-- MQTT.js over Secure WebSockets (WSS) for 100% NAT/Firewall-proof Global Multiplayer -->
+  <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
 
   <style>
     :root {
-      --bg-primary: #0c0d10;
-      --bg-secondary: #13151a;
-      --bg-tertiary: #1b1e26;
-      --border-color: #262932;
-      --text-primary: #eceef2;
-      --text-secondary: #8b909e;
-      --accent: #e5e7eb;
-      --accent-text: #0c0d10;
+      --bg-primary: #090a0d;
+      --bg-secondary: #111318;
+      --bg-tertiary: #181b22;
+      --border-color: #242834;
+      --border-hover: #3b4254;
+      --text-primary: #f2f4f8;
+      --text-secondary: #8a90a2;
+      --accent: #f2f4f8;
+      --accent-text: #090a0d;
       --accent-hover: #ffffff;
-      --sq-light: #e8e4dc;
-      --sq-dark: #7a6a58;
-      --sq-highlight: rgba(217, 160, 91, 0.45);
-      --sq-lastmove: rgba(217, 160, 91, 0.30);
+      --sq-light: #eae6df;
+      --sq-dark: #746453;
+      --sq-highlight: rgba(234, 179, 8, 0.42);
+      --sq-lastmove: rgba(234, 179, 8, 0.28);
     }
 
     html.light {
-      --bg-primary: #f6f6f4;
+      --bg-primary: #f5f5f2;
       --bg-secondary: #ffffff;
-      --bg-tertiary: #efefe9;
-      --border-color: #dcdcd5;
-      --text-primary: #141518;
-      --text-secondary: #686b73;
-      --accent: #141518;
+      --bg-tertiary: #eeede8;
+      --border-color: #dcdbd3;
+      --border-hover: #b8b6ab;
+      --text-primary: #121316;
+      --text-secondary: #686b75;
+      --accent: #121316;
       --accent-text: #ffffff;
-      --accent-hover: #2b2d33;
-      --sq-light: #ede9e0;
-      --sq-dark: #857461;
-      --sq-highlight: rgba(202, 138, 4, 0.38);
-      --sq-lastmove: rgba(202, 138, 4, 0.24);
+      --accent-hover: #26282e;
+      --sq-light: #efeae1;
+      --sq-dark: #82715e;
+      --sq-highlight: rgba(202, 138, 4, 0.36);
+      --sq-lastmove: rgba(202, 138, 4, 0.22);
     }
 
     * {
       box-sizing: border-box;
       user-select: none;
       -webkit-tap-highlight-color: transparent;
-      transition: background-color 0.25s ease,
-                  border-color 0.25s ease,
-                  color 0.2s ease;
+      transition: background-color 0.22s ease,
+                  border-color 0.22s ease,
+                  color 0.18s ease;
     }
 
     body {
@@ -87,31 +89,31 @@
     .btn-primary {
       background-color: var(--accent);
       color: var(--accent-text);
-      transition: background-color 0.18s ease, transform 0.15s ease;
+      transition: background-color 0.16s ease, transform 0.14s ease, opacity 0.16s ease;
     }
     .btn-primary:hover:not(:disabled) {
       background-color: var(--accent-hover);
     }
     .btn-primary:active:not(:disabled) {
-      transform: scale(0.99);
+      transform: scale(0.985);
     }
 
     .btn-secondary {
       background-color: var(--bg-tertiary);
       color: var(--text-primary);
       border: 1px solid var(--border-color);
-      transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.15s ease;
+      transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.14s ease;
     }
     .btn-secondary:hover:not(:disabled) {
-      border-color: var(--text-secondary);
+      border-color: var(--border-hover);
     }
     .btn-secondary:active:not(:disabled) {
-      transform: scale(0.99);
+      transform: scale(0.985);
     }
 
     /* View Transitions */
     .view-panel {
-      animation: viewEnter 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      animation: viewEnter 0.26s cubic-bezier(0.22, 1, 0.36, 1) forwards;
     }
     @keyframes viewEnter {
       from {
@@ -149,10 +151,10 @@
     /* Chessboard Styling */
     .board-wrapper {
       width: 100%;
-      max-width: min(86vw, 520px);
+      max-width: min(88vw, 520px);
       aspect-ratio: 1 / 1;
       position: relative;
-      border-radius: 6px;
+      border-radius: 8px;
       overflow: hidden;
       border: 1px solid var(--border-color);
     }
@@ -193,14 +195,14 @@
     }
 
     .square.in-check {
-      background: radial-gradient(circle, rgba(220, 38, 38, 0.85) 0%, rgba(185, 28, 28, 0.45) 75%, transparent 100%) !important;
+      background: radial-gradient(circle, rgba(220, 38, 38, 0.88) 0%, rgba(185, 28, 28, 0.45) 75%, transparent 100%) !important;
     }
 
     .legal-dot {
       width: 24%;
       height: 24%;
       border-radius: 9999px;
-      background-color: rgba(20, 21, 24, 0.28);
+      background-color: rgba(18, 19, 22, 0.28);
       pointer-events: none;
       z-index: 2;
     }
@@ -209,7 +211,7 @@
       position: absolute;
       inset: 9%;
       border-radius: 9999px;
-      border: 3px solid rgba(20, 21, 24, 0.35);
+      border: 3px solid rgba(18, 19, 22, 0.35);
       pointer-events: none;
       z-index: 2;
     }
@@ -237,7 +239,7 @@
       font-size: 10px;
       font-weight: 600;
       line-height: 1;
-      opacity: 0.8;
+      opacity: 0.78;
       pointer-events: none;
     }
 
@@ -248,12 +250,12 @@
       font-size: 10px;
       font-weight: 600;
       line-height: 1;
-      opacity: 0.8;
+      opacity: 0.78;
       pointer-events: none;
     }
 
     .text-sq-dark { color: #5c4f42; }
-    .text-sq-light { color: #e8e4dc; }
+    .text-sq-light { color: #eae6df; }
 
     /* Audio Equalizer Bars */
     .eq-bars {
@@ -279,6 +281,15 @@
       0% { height: 3px; }
       100% { height: 11px; }
     }
+
+    /* Subtle pulse for live server dot */
+    @keyframes subtlePulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .live-dot {
+      animation: subtlePulse 2.2s ease-in-out infinite;
+    }
   </style>
 </head>
 <body class="flex flex-col justify-between">
@@ -287,7 +298,7 @@
   <header class="w-full border-b" style="border-color: var(--border-color); background-color: var(--bg-secondary);">
     <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
       <button onclick="returnToMenu()" class="flex items-center gap-2.5 text-left focus:outline-none">
-        <div class="w-8 h-8 rounded-md flex items-center justify-center border"
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center border"
              style="background-color: var(--bg-tertiary); border-color: var(--border-color); color: var(--text-primary);">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M19 22H5v-2h14v2M17.16 8.26A8.96 8.96 0 0 0 11 4.13V2H9v2.13c-1.89.38-3.5 1.49-4.47 3.05L3 9.7l1.73 1 1.45-2.32c.54-.86 1.45-1.45 2.47-1.59L7.5 11.5 6 18h12l-1.5-6.5 1.95-1.85c.4-.38.52-.97.28-1.47l-.57-1.15Z"/>
@@ -299,8 +310,14 @@
         </div>
       </button>
 
-      <!-- Right Controls: Music Toggle, Theme Switch -->
+      <!-- Right Controls: Server Status, Music Toggle, Theme Switch -->
       <div class="flex items-center gap-2">
+        <div id="netBadge" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium surface-sub"
+             style="color: var(--text-secondary);">
+          <span id="netDot" class="w-1.5 h-1.5 rounded-full bg-amber-400 live-dot"></span>
+          <span id="netLabel">Connecting</span>
+        </div>
+
         <button id="musicToggleBtn" aria-label="Toggle chill background music" title="Chill Background Music"
           class="btn-secondary rounded-md px-3 py-1.5 text-xs font-medium inline-flex items-center gap-2">
           <span id="musicEq" class="eq-bars eq-active">
@@ -324,50 +341,60 @@
   <main class="flex-1 flex items-center justify-center p-4">
 
     <!-- VIEW 1: MAIN LOBBY / MENU -->
-    <section id="viewLobby" class="view-panel w-full max-w-sm space-y-3">
-      <div class="surface-card rounded-xl p-6 space-y-5">
-        <div>
-          <h1 class="text-xl font-semibold tracking-tight">Chessing</h1>
+    <section id="viewLobby" class="view-panel w-full max-w-[380px] space-y-3">
+      <div class="surface-card rounded-2xl p-6 space-y-5">
+        <div class="flex items-center justify-between">
+          <h1 class="text-2xl font-bold tracking-tight">Chessing</h1>
+          <span class="text-[11px] font-mono-clock px-2 py-0.5 rounded surface-sub" style="color: var(--text-secondary);">v2.0</span>
         </div>
 
         <div class="space-y-2.5">
-          <button id="btnQueue" class="btn-primary w-full py-3 px-4 rounded-lg font-medium text-sm flex items-center justify-between">
-            <span>Play Online</span>
+          <button id="btnQueue" class="btn-primary w-full py-3.5 px-4 rounded-xl font-semibold text-sm flex items-center justify-between">
+            <span class="flex items-center gap-2.5">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+              <span>Play Online</span>
+            </span>
             <span class="text-xs opacity-75 font-mono-clock">10m</span>
           </button>
 
-          <button id="btnOpenCreate" class="btn-secondary w-full py-3 px-4 rounded-lg font-medium text-sm flex items-center justify-between">
-            <span>Create Private Room</span>
-            <span class="text-xs" style="color: var(--text-secondary);">Custom</span>
+          <button id="btnOpenCreate" class="btn-secondary w-full py-3.5 px-4 rounded-xl font-medium text-sm flex items-center justify-between">
+            <span class="flex items-center gap-2.5">
+              <svg class="w-4 h-4 opacity-75" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              <span>Create Private Room</span>
+            </span>
+            <span class="text-xs" style="color: var(--text-secondary);">Invite</span>
           </button>
 
-          <button id="btnLocalMode" class="btn-secondary w-full py-3 px-4 rounded-lg font-medium text-sm flex items-center justify-between">
-            <span>Pass &amp; Play</span>
+          <button id="btnLocalMode" class="btn-secondary w-full py-3.5 px-4 rounded-xl font-medium text-sm flex items-center justify-between">
+            <span class="flex items-center gap-2.5">
+              <svg class="w-4 h-4 opacity-75" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+              <span>Pass &amp; Play</span>
+            </span>
             <span class="text-xs" style="color: var(--text-secondary);">Local</span>
           </button>
         </div>
 
-        <div class="pt-3 border-t" style="border-color: var(--border-color);">
+        <div class="pt-4 border-t" style="border-color: var(--border-color);">
           <label class="block text-xs font-medium mb-2" style="color: var(--text-secondary);">Join by Room Code</label>
           <div class="flex gap-2">
             <input id="joinCodeInput" type="text" maxlength="8" placeholder="K7X9P2"
-              class="w-full px-3 py-2 rounded-lg text-sm font-mono-clock uppercase focus:outline-none surface-sub"
+              class="w-full px-3.5 py-2.5 rounded-xl text-sm font-mono-clock uppercase tracking-wider focus:outline-none surface-sub"
               style="color: var(--text-primary);" />
-            <button id="btnJoinCode" class="btn-secondary px-4 py-2 rounded-lg text-sm font-medium">
+            <button id="btnJoinCode" class="btn-secondary px-5 py-2.5 rounded-xl text-sm font-semibold">
               Join
             </button>
           </div>
         </div>
       </div>
 
-      <div id="toastBox" class="hidden rounded-lg px-3.5 py-2.5 text-xs font-medium text-center border"
+      <div id="toastBox" class="hidden rounded-xl px-4 py-3 text-xs font-medium text-center border"
            style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-primary);">
       </div>
     </section>
 
     <!-- VIEW 2: CREATE ROOM MODAL / CARD -->
-    <section id="viewCreateRoom" class="view-panel hidden w-full max-w-sm">
-      <div class="surface-card rounded-xl p-6 space-y-5">
+    <section id="viewCreateRoom" class="view-panel hidden w-full max-w-[380px]">
+      <div class="surface-card rounded-2xl p-6 space-y-5">
         <div class="flex items-center justify-between">
           <h2 class="text-base font-semibold">Create Private Room</h2>
           <button onclick="returnToMenu()" class="text-xs font-medium px-2.5 py-1 rounded-md surface-sub hover:opacity-80">Back</button>
@@ -376,17 +403,17 @@
         <div class="space-y-2">
           <label class="block text-xs font-medium" style="color: var(--text-secondary);">Side</label>
           <div class="grid grid-cols-3 gap-2" id="colorChoiceGroup">
-            <button type="button" data-color="w" class="color-opt active-opt py-2.5 px-2 rounded-lg border text-center"
+            <button type="button" data-color="w" class="color-opt active-opt py-2.5 px-2 rounded-xl border text-center"
                     style="border-color: var(--text-primary); background-color: var(--bg-tertiary);">
               <div class="w-3.5 h-3.5 rounded-full bg-white border border-neutral-400 mx-auto mb-1"></div>
               <div class="text-xs font-medium">White</div>
             </button>
-            <button type="button" data-color="random" class="color-opt py-2.5 px-2 rounded-lg border text-center"
+            <button type="button" data-color="random" class="color-opt py-2.5 px-2 rounded-xl border text-center"
                     style="border-color: var(--border-color); background-color: var(--bg-tertiary);">
               <div class="w-3.5 h-3.5 rounded-full mx-auto mb-1 border border-neutral-400" style="background: linear-gradient(90deg, #fff 50%, #181b22 50%);"></div>
               <div class="text-xs font-medium">Random</div>
             </button>
-            <button type="button" data-color="b" class="color-opt py-2.5 px-2 rounded-lg border text-center"
+            <button type="button" data-color="b" class="color-opt py-2.5 px-2 rounded-xl border text-center"
                     style="border-color: var(--border-color); background-color: var(--bg-tertiary);">
               <div class="w-3.5 h-3.5 rounded-full bg-neutral-900 border border-neutral-400 mx-auto mb-1"></div>
               <div class="text-xs font-medium">Black</div>
@@ -397,52 +424,57 @@
         <div class="space-y-2">
           <label class="block text-xs font-medium" style="color: var(--text-secondary);">Minutes per side</label>
           <div class="grid grid-cols-4 gap-2" id="timeChoiceGroup">
-            <button type="button" data-time="180" class="time-opt py-2 rounded-lg border text-xs font-medium font-mono-clock"
+            <button type="button" data-time="180" class="time-opt py-2.5 rounded-xl border text-xs font-medium font-mono-clock"
                     style="border-color: var(--border-color); background-color: var(--bg-tertiary);">3</button>
-            <button type="button" data-time="300" class="time-opt py-2 rounded-lg border text-xs font-medium font-mono-clock"
+            <button type="button" data-time="300" class="time-opt py-2.5 rounded-xl border text-xs font-medium font-mono-clock"
                     style="border-color: var(--border-color); background-color: var(--bg-tertiary);">5</button>
-            <button type="button" data-time="600" class="time-opt active-time py-2 rounded-lg border text-xs font-medium font-mono-clock"
+            <button type="button" data-time="600" class="time-opt active-time py-2.5 rounded-xl border text-xs font-medium font-mono-clock"
                     style="border-color: var(--text-primary); background-color: var(--bg-tertiary);">10</button>
-            <button type="button" data-time="0" class="time-opt py-2 rounded-lg border text-xs font-medium font-mono-clock"
+            <button type="button" data-time="0" class="time-opt py-2.5 rounded-xl border text-xs font-medium font-mono-clock"
                     style="border-color: var(--border-color); background-color: var(--bg-tertiary);">∞</button>
           </div>
         </div>
 
-        <button id="btnConfirmCreateRoom" class="btn-primary w-full py-3 rounded-lg font-medium text-sm">
+        <button id="btnConfirmCreateRoom" class="btn-primary w-full py-3.5 rounded-xl font-semibold text-sm">
           Create Room
         </button>
       </div>
     </section>
 
     <!-- VIEW 3: WAITING ROOM / QUEUE / SHARE LINK -->
-    <section id="viewWaiting" class="view-panel hidden w-full max-w-sm">
-      <div class="surface-card rounded-xl p-6 text-center space-y-5">
-        <div class="space-y-1">
+    <section id="viewWaiting" class="view-panel hidden w-full max-w-[380px]">
+      <div class="surface-card rounded-2xl p-6 text-center space-y-5">
+        <div class="space-y-1.5">
+          <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[11px] font-medium surface-sub mx-auto mb-1"
+               style="color: var(--text-secondary);">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 live-dot"></span>
+            <span id="waitingRelayStatus">Live Relay Ready</span>
+          </div>
           <h2 id="waitingTitle" class="text-base font-semibold">Waiting for opponent...</h2>
           <p id="waitingSubtitle" class="text-xs" style="color: var(--text-secondary);">Share the code or link below.</p>
         </div>
 
         <div id="shareBox" class="space-y-3 text-left">
-          <div class="p-3 rounded-lg surface-sub flex items-center justify-between">
+          <div class="p-3.5 rounded-xl surface-sub flex items-center justify-between">
             <div>
               <span class="text-[11px] block" style="color: var(--text-secondary);">Room Code</span>
-              <span id="displayRoomCode" class="text-base font-semibold font-mono-clock tracking-wider">------</span>
+              <span id="displayRoomCode" class="text-lg font-bold font-mono-clock tracking-widest">------</span>
             </div>
-            <button onclick="copyRoomCode()" class="btn-secondary px-3 py-1.5 rounded-md text-xs font-medium">Copy</button>
+            <button onclick="copyRoomCode()" class="btn-secondary px-3.5 py-1.5 rounded-lg text-xs font-medium">Copy</button>
           </div>
 
-          <div class="p-3 rounded-lg surface-sub space-y-2">
+          <div class="p-3.5 rounded-xl surface-sub space-y-2">
             <span class="text-[11px] block" style="color: var(--text-secondary);">Invite Link</span>
             <div class="flex gap-2">
               <input id="displayRoomLink" type="text" readonly
-                class="w-full px-2.5 py-1.5 rounded-md text-xs font-mono-clock focus:outline-none"
+                class="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono-clock focus:outline-none"
                 style="background-color: var(--bg-primary); color: var(--text-secondary); border: 1px solid var(--border-color);" />
-              <button onclick="copyRoomLink()" class="btn-primary px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap">Copy</button>
+              <button onclick="copyRoomLink()" class="btn-primary px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap">Copy</button>
             </div>
           </div>
         </div>
 
-        <button onclick="returnToMenu()" class="btn-secondary w-full py-2.5 rounded-lg text-xs font-medium">
+        <button onclick="returnToMenu()" class="btn-secondary w-full py-2.5 rounded-xl text-xs font-medium">
           Cancel
         </button>
       </div>
@@ -456,9 +488,9 @@
         <div class="flex flex-col items-center w-full max-w-[520px] space-y-2">
 
           <!-- Top Player Bar (Opponent) -->
-          <div class="w-full surface-card rounded-lg px-3.5 py-2 flex items-center justify-between">
+          <div class="w-full surface-card rounded-xl px-3.5 py-2.5 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-              <div id="topAvatar" class="w-7 h-7 rounded-md flex items-center justify-center surface-sub">
+              <div id="topAvatar" class="w-7 h-7 rounded-lg flex items-center justify-center surface-sub">
                 <span class="w-3 h-3 rounded-full bg-neutral-900 border border-neutral-400"></span>
               </div>
               <div>
@@ -470,7 +502,7 @@
                 <span id="topRoleLabel" class="text-[11px]" style="color: var(--text-secondary);">Black</span>
               </div>
             </div>
-            <div id="topClock" class="font-mono-clock text-base font-semibold px-2.5 py-1 rounded-md surface-sub">10:00</div>
+            <div id="topClock" class="font-mono-clock text-base font-semibold px-3 py-1 rounded-lg surface-sub">10:00</div>
           </div>
 
           <!-- Responsive Chessboard -->
@@ -480,9 +512,9 @@
           </div>
 
           <!-- Bottom Player Bar (You) -->
-          <div class="w-full surface-card rounded-lg px-3.5 py-2 flex items-center justify-between">
+          <div class="w-full surface-card rounded-xl px-3.5 py-2.5 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
-              <div id="bottomAvatar" class="w-7 h-7 rounded-md flex items-center justify-center surface-sub">
+              <div id="bottomAvatar" class="w-7 h-7 rounded-lg flex items-center justify-center surface-sub">
                 <span class="w-3 h-3 rounded-full bg-white border border-neutral-400"></span>
               </div>
               <div>
@@ -494,20 +526,20 @@
                 <span id="bottomRoleLabel" class="text-[11px]" style="color: var(--text-secondary);">White</span>
               </div>
             </div>
-            <div id="bottomClock" class="font-mono-clock text-base font-semibold px-2.5 py-1 rounded-md surface-sub">10:00</div>
+            <div id="bottomClock" class="font-mono-clock text-base font-semibold px-3 py-1 rounded-lg surface-sub">10:00</div>
           </div>
         </div>
 
         <!-- Right Sidebar: Game Info, Spectator Banner, Controls & Move History -->
-        <div class="w-full max-w-[520px] lg:w-72 surface-card rounded-xl p-4 flex flex-col justify-between space-y-4">
+        <div class="w-full max-w-[520px] lg:w-72 surface-card rounded-2xl p-4 flex flex-col justify-between space-y-4">
           <div class="space-y-3">
             <!-- Mode / Spectator Status Banner -->
-            <div id="gameRoleBanner" class="p-3 rounded-lg surface-sub flex items-center justify-between">
+            <div id="gameRoleBanner" class="p-3 rounded-xl surface-sub flex items-center justify-between">
               <div>
                 <span id="gameModeTitle" class="text-xs font-semibold block">Live Match</span>
                 <span id="gameRoomTag" class="text-[11px] font-mono-clock" style="color: var(--text-secondary);">Room: LOCAL</span>
               </div>
-              <span id="spectatorCountBadge" class="text-[11px] font-medium px-2 py-0.5 rounded inline-flex items-center gap-1.5"
+              <span id="spectatorCountBadge" class="text-[11px] font-medium px-2 py-0.5 rounded-md inline-flex items-center gap-1.5"
                     style="background-color: var(--bg-primary); color: var(--text-secondary);">
                 <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                 <span id="spectatorCountNum">0</span>
@@ -515,7 +547,7 @@
             </div>
 
             <!-- Live Game Status Message -->
-            <div id="gameStatusAlert" class="p-2.5 rounded-lg text-xs font-medium text-center"
+            <div id="gameStatusAlert" class="p-2.5 rounded-xl text-xs font-medium text-center"
                  style="background-color: var(--bg-tertiary); color: var(--text-primary);">
               White to move
             </div>
@@ -523,7 +555,7 @@
             <!-- Move History List -->
             <div>
               <div class="text-[11px] font-medium mb-1.5" style="color: var(--text-secondary);">Moves</div>
-              <div id="moveHistoryBox" class="h-44 lg:h-64 overflow-y-auto rounded-lg p-2 space-y-0.5 text-xs font-mono-clock surface-sub">
+              <div id="moveHistoryBox" class="h-44 lg:h-64 overflow-y-auto rounded-xl p-2 space-y-0.5 text-xs font-mono-clock surface-sub">
                 <div class="text-center py-6 opacity-50">No moves yet</div>
               </div>
             </div>
@@ -531,18 +563,18 @@
 
           <!-- Action Controls -->
           <div class="space-y-2 pt-2 border-t" style="border-color: var(--border-color);">
-            <button id="btnShareInGame" onclick="copyRoomLink()" class="hidden btn-secondary w-full py-2 rounded-lg text-xs font-medium">
+            <button id="btnShareInGame" onclick="copyRoomLink()" class="hidden btn-secondary w-full py-2.5 rounded-xl text-xs font-medium">
               Copy Invite Link
             </button>
             <div class="grid grid-cols-2 gap-2" id="playerControls">
-              <button id="btnFlipBoard" onclick="flipBoardView()" class="btn-secondary py-2 rounded-lg text-xs font-medium">
+              <button id="btnFlipBoard" onclick="flipBoardView()" class="btn-secondary py-2.5 rounded-xl text-xs font-medium">
                 Flip Board
               </button>
-              <button id="btnResign" onclick="resignGame()" class="py-2 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/25 hover:bg-red-500/20">
+              <button id="btnResign" onclick="resignGame()" class="py-2.5 rounded-xl text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/25 hover:bg-red-500/20">
                 Resign
               </button>
             </div>
-            <button onclick="returnToMenu()" class="btn-secondary w-full py-2 rounded-lg text-xs font-medium">
+            <button onclick="returnToMenu()" class="btn-secondary w-full py-2.5 rounded-xl text-xs font-medium">
               Leave
             </button>
           </div>
@@ -555,7 +587,7 @@
 
   <!-- Pawn Promotion Modal -->
   <div id="promotionModal" class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-    <div class="modal-box surface-card rounded-xl p-5 max-w-xs w-full text-center space-y-4">
+    <div class="modal-box surface-card rounded-2xl p-5 max-w-xs w-full text-center space-y-4">
       <h3 class="font-semibold text-sm">Promote Pawn</h3>
       <div class="grid grid-cols-4 gap-2" id="promotionChoices"></div>
     </div>
@@ -563,14 +595,14 @@
 
   <!-- Game Over Modal -->
   <div id="gameOverModal" class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
-    <div class="modal-box surface-card rounded-xl p-6 max-w-sm w-full text-center space-y-4">
+    <div class="modal-box surface-card rounded-2xl p-6 max-w-sm w-full text-center space-y-4">
       <div class="space-y-1">
         <h3 id="gameOverTitle" class="text-lg font-semibold">Checkmate</h3>
         <p id="gameOverDesc" class="text-xs" style="color: var(--text-secondary);">White wins the game.</p>
       </div>
       <div class="flex gap-2 pt-2">
-        <button onclick="closeGameOverModal()" class="btn-secondary flex-1 py-2.5 rounded-lg text-xs font-medium">View Board</button>
-        <button onclick="returnToMenu()" class="btn-primary flex-1 py-2.5 rounded-lg text-xs font-medium">Main Menu</button>
+        <button onclick="closeGameOverModal()" class="btn-secondary flex-1 py-2.5 rounded-xl text-xs font-medium">View Board</button>
+        <button onclick="returnToMenu()" class="btn-primary flex-1 py-2.5 rounded-xl text-xs font-semibold">Main Menu</button>
       </div>
     </div>
   </div>
@@ -621,34 +653,33 @@
     class ChillAudioEngine {
       constructor() {
         this.ctx = null;
-        this.isPlaying = true; // Desired state: ON by default
+        this.isPlaying = true; // Default ON
         this.isRunningLoop = false;
         this.masterGain = null;
         this.compressor = null;
         this.sfxGain = null;
         this.stepTimer = null;
         this.step = 0;
-        this.stepMs = 210; // ~71 BPM relaxed chill tempo
+        this.stepMs = 210;
 
-        // Lush, warm jazz-chill chord progression (Fmaj9 -> Em7 -> Dm9 -> Cmaj9)
         this.progression = [
           {
-            root: 87.31, // F2
+            root: 87.31,
             chords: [174.61, 220.00, 261.63, 329.63, 392.00],
             scale: [523.25, 587.33, 659.25, 783.99, 880.00]
           },
           {
-            root: 82.41, // E2
+            root: 82.41,
             chords: [164.81, 196.00, 246.94, 293.66, 392.00],
             scale: [493.88, 587.33, 659.25, 783.99, 987.77]
           },
           {
-            root: 73.42, // D2
+            root: 73.42,
             chords: [146.83, 174.61, 220.00, 261.63, 329.63],
             scale: [523.25, 587.33, 659.25, 698.46, 880.00]
           },
           {
-            root: 65.41, // C2
+            root: 65.41,
             chords: [130.81, 196.00, 246.94, 293.66, 329.63],
             scale: [493.88, 523.25, 587.33, 659.25, 783.99]
           }
@@ -660,7 +691,6 @@
           const AudioCtx = window.AudioContext || window.webkitAudioContext;
           this.ctx = new AudioCtx();
 
-          // Soft dynamics compressor prevents clipping or popping when multiple notes overlap
           this.compressor = this.ctx.createDynamicsCompressor();
           this.compressor.threshold.setValueAtTime(-18, this.ctx.currentTime);
           this.compressor.knee.setValueAtTime(24, this.ctx.currentTime);
@@ -689,10 +719,8 @@
           const noteGain = this.ctx.createGain();
           const lpFilter = this.ctx.createBiquadFilter();
 
-          // Pure warm sine + subtle detuned chorus sine (no harsh harmonics or clicks)
           osc1.type = 'sine';
           osc2.type = 'sine';
-
           osc1.frequency.setValueAtTime(freq, now);
           osc2.frequency.setValueAtTime(freq, now);
           osc1.detune.setValueAtTime(-4, now);
@@ -703,7 +731,6 @@
           lpFilter.frequency.exponentialRampToValueAtTime(340, now + duration);
 
           const onset = now + idx * 0.045;
-          // Long smooth attack & release eliminates any clicking/popping
           noteGain.gain.setValueAtTime(0.0001, onset);
           noteGain.gain.linearRampToValueAtTime(0.036, onset + 0.28);
           noteGain.gain.setValueAtTime(0.032, onset + duration * 0.55);
@@ -799,7 +826,6 @@
         const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
         const data = buf.getChannelData(0);
         for (let i = 0; i < len; i++) {
-          // Hann-windowed smooth noise so there is zero click
           const env = Math.sin((Math.PI * i) / len);
           data[i] = (Math.random() * 2 - 1) * env;
         }
@@ -829,14 +855,12 @@
         const barStep = this.step % 16;
         const currentBar = this.progression[barIndex];
 
-        // Lush warm electric piano chords
         if (barStep === 0) {
           this.playWarmPadChord(currentBar.chords, 2.6);
         } else if (barStep === 10) {
           this.playWarmPadChord(currentBar.chords.slice(1), 1.5);
         }
 
-        // Smooth sub-bass movement
         if (barStep === 0) {
           this.playSmoothBass(currentBar.root, 1.5);
         } else if (barStep === 7) {
@@ -845,7 +869,6 @@
           this.playSmoothBass(currentBar.root, 1.1);
         }
 
-        // Gentle mellow pulse & brushed percussion
         if (barStep === 0 || barStep === 10) {
           this.playMellowPulse();
         }
@@ -853,7 +876,6 @@
           this.playSoftBrush();
         }
 
-        // Gentle floating pentatonic notes
         const melodySteps = [2, 6, 9, 14];
         if (melodySteps.includes(barStep) && Math.random() < 0.55) {
           const note = currentBar.scale[Math.floor(Math.random() * currentBar.scale.length)];
@@ -966,7 +988,6 @@
       }
     }
 
-    // Attempt immediate autoplay; if browser blocks until first gesture, start cleanly on any first interaction
     (async function setupDefaultMusic() {
       updateMusicButtonUI(true);
       const started = await audioEngine.tryStart();
@@ -1023,37 +1044,159 @@
     // 4. APPLICATION STATE & CHESS ENGINE
     // =========================================================================
     const chess = new Chess();
+    const MY_CLIENT_ID = 'u_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
 
     const state = {
       mode: 'lobby', // 'lobby' | 'local' | 'online_host' | 'online_guest' | 'spectator'
-      myColor: 'w',  // 'w' or 'b'
+      myColor: 'w',
       boardOrientation: 'w',
       selectedSquare: null,
       legalMoves: [],
       lastMove: null,
-      timeLimit: 600, // seconds per player (0 = unlimited)
+      timeLimit: 600,
       clocks: { w: 600, b: 600 },
       clockInterval: null,
       gameOver: false,
 
-      // Room creation settings
       setupColorChoice: 'w',
       setupTimeChoice: 600,
 
-      // PeerJS multiplayer state
-      peer: null,
+      // Real-time MQTT Relay Multiplayer State
+      mqttClient: null,
+      mqttConnected: false,
+      activeTopic: null,
       roomCode: null,
-      hostConn: null,
-      guestConn: null,
-      spectatorConns: [],
-      queueInterval: null,
-      queueSlotIndex: 0
+      guestId: null,
+      spectatorIds: new Set(),
+      heartbeatTimer: null,
+      joinRetryTimer: null,
+      queueInterval: null
     };
 
-    const QUEUE_SLOTS = 6; // Global matchmaking slots
+    // =========================================================================
+    // 5. PERSISTENT GLOBAL SECURE WEBSOCKET RELAY (WORKS ON ANY WIFI / MOBILE)
+    // =========================================================================
+    const BROKERS = [
+      'wss://broker.emqx.io:8084/mqtt',
+      'wss://broker.hivemq.com:8884/mqtt'
+    ];
+    let brokerIdx = 0;
+
+    function updateNetBadge(status) {
+      const dot = document.getElementById('netDot');
+      const label = document.getElementById('netLabel');
+      const waitStatus = document.getElementById('waitingRelayStatus');
+      if (status === 'online') {
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
+        label.textContent = 'Online';
+        if (waitStatus) waitStatus.textContent = 'Live Relay Connected';
+      } else if (status === 'connecting') {
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400 live-dot';
+        label.textContent = 'Connecting';
+        if (waitStatus) waitStatus.textContent = 'Connecting to Relay...';
+      } else {
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-red-400';
+        label.textContent = 'Reconnecting';
+        if (waitStatus) waitStatus.textContent = 'Reconnecting...';
+      }
+    }
+
+    function ensureRelayConnected() {
+      return new Promise((resolve) => {
+        if (state.mqttClient && state.mqttConnected) {
+          resolve(state.mqttClient);
+          return;
+        }
+        if (state.mqttClient) {
+          try { state.mqttClient.end(true); } catch (e) {}
+          state.mqttClient = null;
+        }
+
+        updateNetBadge('connecting');
+        const url = BROKERS[brokerIdx % BROKERS.length];
+        const client = mqtt.connect(url, {
+          clientId: 'chessing_ekkman_' + MY_CLIENT_ID,
+          clean: true,
+          connectTimeout: 8000,
+          reconnectPeriod: 2000,
+          keepalive: 30
+        });
+
+        state.mqttClient = client;
+        let settled = false;
+
+        client.on('connect', () => {
+          state.mqttConnected = true;
+          updateNetBadge('online');
+          if (state.activeTopic) {
+            client.subscribe(state.activeTopic, { qos: 1 });
+          }
+          if (!settled) {
+            settled = true;
+            resolve(client);
+          }
+        });
+
+        client.on('reconnect', () => {
+          state.mqttConnected = false;
+          updateNetBadge('connecting');
+        });
+
+        client.on('offline', () => {
+          state.mqttConnected = false;
+          updateNetBadge('offline');
+        });
+
+        client.on('error', () => {
+          state.mqttConnected = false;
+          brokerIdx++;
+        });
+
+        client.on('message', (topic, messageBuffer) => {
+          if (topic !== state.activeTopic) return;
+          try {
+            const msg = JSON.parse(messageBuffer.toString());
+            if (!msg || msg.sender === MY_CLIENT_ID) return;
+            handleRelayMessage(msg);
+          } catch (e) {}
+        });
+
+        setTimeout(() => {
+          if (!settled) {
+            settled = true;
+            resolve(client);
+          }
+        }, 6000);
+      });
+    }
+
+    // Connect immediately on page load so room creation & joining are instant
+    window.addEventListener('load', () => {
+      ensureRelayConnected();
+    });
+
+    function subscribeTopic(topic) {
+      if (state.activeTopic && state.mqttClient && state.mqttConnected) {
+        try { state.mqttClient.unsubscribe(state.activeTopic); } catch (e) {}
+      }
+      state.activeTopic = topic;
+      if (state.mqttClient && state.mqttConnected) {
+        state.mqttClient.subscribe(topic, { qos: 1 });
+      }
+    }
+
+    function publishMessage(payload, retain = false) {
+      if (!state.activeTopic || !state.mqttClient) return;
+      const packet = JSON.stringify({
+        ...payload,
+        sender: MY_CLIENT_ID,
+        ts: Date.now()
+      });
+      state.mqttClient.publish(state.activeTopic, packet, { qos: 1, retain });
+    }
 
     // =========================================================================
-    // 5. UI HELPERS & NAVIGATION
+    // 6. UI HELPERS & NAVIGATION
     // =========================================================================
     function showView(viewId) {
       ['viewLobby', 'viewCreateRoom', 'viewWaiting', 'viewGame'].forEach(id => {
@@ -1061,7 +1204,7 @@
         if (id === viewId) {
           el.classList.remove('hidden');
           el.classList.remove('view-panel');
-          void el.offsetWidth; // trigger reflow for clean animation replay
+          void el.offsetWidth;
           el.classList.add('view-panel');
         } else {
           el.classList.add('hidden');
@@ -1074,39 +1217,45 @@
       box.textContent = msg;
       box.classList.remove('hidden');
       clearTimeout(box._timer);
-      box._timer = setTimeout(() => box.classList.add('hidden'), 4200);
+      box._timer = setTimeout(() => box.classList.add('hidden'), 4500);
     }
 
-    function cleanupNetwork() {
+    function cleanupRoomSession() {
       if (state.queueInterval) {
         clearInterval(state.queueInterval);
         state.queueInterval = null;
+      }
+      if (state.heartbeatTimer) {
+        clearInterval(state.heartbeatTimer);
+        state.heartbeatTimer = null;
+      }
+      if (state.joinRetryTimer) {
+        clearInterval(state.joinRetryTimer);
+        state.joinRetryTimer = null;
       }
       if (state.clockInterval) {
         clearInterval(state.clockInterval);
         state.clockInterval = null;
       }
-      if (state.hostConn) {
-        try { state.hostConn.close(); } catch (e) {}
-        state.hostConn = null;
+      if (state.activeTopic && state.mqttClient && state.mqttConnected) {
+        if (state.mode === 'online_host') {
+          // Clear retained room message when host leaves
+          state.mqttClient.publish(state.activeTopic, '', { qos: 1, retain: true });
+        } else if (state.mode === 'online_guest' || state.mode === 'spectator') {
+          publishMessage({ type: 'leave' }, false);
+        }
+        try { state.mqttClient.unsubscribe(state.activeTopic); } catch (e) {}
       }
-      if (state.guestConn) {
-        try { state.guestConn.close(); } catch (e) {}
-        state.guestConn = null;
-      }
-      state.spectatorConns.forEach(c => { try { c.close(); } catch (e) {} });
-      state.spectatorConns = [];
-      if (state.peer) {
-        try { state.peer.destroy(); } catch (e) {}
-        state.peer = null;
-      }
+      state.activeTopic = null;
+      state.guestId = null;
+      state.spectatorIds.clear();
       if (window.location.search.includes('room=')) {
         window.history.replaceState({}, document.title, window.location.pathname);
       }
     }
 
     function returnToMenu() {
-      cleanupNetwork();
+      cleanupRoomSession();
       closeGameOverModal();
       document.getElementById('promotionModal').classList.add('hidden');
       state.mode = 'lobby';
@@ -1114,7 +1263,7 @@
     }
 
     // =========================================================================
-    // 6. CREATE ROOM OPTIONS UI
+    // 7. CREATE ROOM OPTIONS & LOCAL MODE
     // =========================================================================
     document.getElementById('btnOpenCreate').addEventListener('click', () => {
       showView('viewCreateRoom');
@@ -1140,11 +1289,8 @@
       startPrivateHostRoom();
     });
 
-    // =========================================================================
-    // 7. LOCAL PASS & PLAY MODE
-    // =========================================================================
     document.getElementById('btnLocalMode').addEventListener('click', () => {
-      cleanupNetwork();
+      cleanupRoomSession();
       state.mode = 'local';
       state.myColor = 'w';
       state.boardOrientation = 'w';
@@ -1155,32 +1301,8 @@
     });
 
     // =========================================================================
-    // 8. PEERJS MULTIPLAYER (PRIVATE ROOMS, SPECTATORS & RANDOM QUEUE)
+    // 8. MULTIPLAYER ROOMS, INVITE LINKS, SPECTATORS & ONLINE QUEUE
     // =========================================================================
-    const PEER_CONFIG = {
-      debug: 1,
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-          { urls: 'stun:global.stun.twilio.com:3478' }
-        ],
-        iceCandidatePoolSize: 10
-      }
-    };
-
-    let pingInterval = null;
-
-    function startHeartbeat(conn) {
-      if (pingInterval) clearInterval(pingInterval);
-      pingInterval = setInterval(() => {
-        if (conn && conn.open) {
-          try { conn.send({ type: 'ping' }); } catch (e) {}
-        }
-      }, 4000);
-    }
-
     function generateRoomCode() {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
       let code = '';
@@ -1204,7 +1326,7 @@
       if (!state.roomCode) return;
       const link = getInviteUrl(state.roomCode);
       copyTextFallback(link);
-      showToast('Invite link copied to clipboard!');
+      showToast('Invite link copied!');
     }
 
     function copyTextFallback(text) {
@@ -1216,13 +1338,32 @@
       document.body.removeChild(temp);
     }
 
+    function buildHostSyncPacket(extra = {}) {
+      return {
+        type: 'room_state',
+        hostId: MY_CLIENT_ID,
+        guestId: state.guestId,
+        guestColor: state.myColor === 'w' ? 'b' : 'w',
+        timeLimit: state.timeLimit,
+        fen: chess.fen(),
+        clocks: state.clocks,
+        history: chess.history(),
+        lastMove: state.lastMove,
+        gameOver: state.gameOver,
+        spectatorCount: state.spectatorIds.size,
+        ...extra
+      };
+    }
+
     // --- HOST PRIVATE ROOM ---
-    function startPrivateHostRoom() {
-      cleanupNetwork();
+    async function startPrivateHostRoom() {
+      cleanupRoomSession();
       const code = generateRoomCode();
       state.roomCode = code;
       state.mode = 'online_host';
       state.timeLimit = state.setupTimeChoice;
+      state.guestId = null;
+      state.spectatorIds.clear();
 
       if (state.setupColorChoice === 'random') {
         state.myColor = Math.random() < 0.5 ? 'w' : 'b';
@@ -1231,107 +1372,167 @@
       }
       state.boardOrientation = state.myColor;
 
-      document.getElementById('waitingTitle').textContent = 'Registering Room...';
-      document.getElementById('waitingSubtitle').textContent = 'Connecting to signaling server...';
+      document.getElementById('waitingTitle').textContent = 'Waiting for Opponent...';
+      document.getElementById('waitingSubtitle').textContent = 'Share the code or link below. Extra joiners become spectators.';
       document.getElementById('shareBox').classList.remove('hidden');
       document.getElementById('displayRoomCode').textContent = code;
       document.getElementById('displayRoomLink').value = getInviteUrl(code);
       showView('viewWaiting');
 
-      const peerId = 'chessing-ekkman-room-' + code;
-      state.peer = new Peer(peerId, PEER_CONFIG);
+      await ensureRelayConnected();
+      subscribeTopic('ekkman/chessing/v2/room/' + code);
 
-      state.peer.on('open', () => {
-        document.getElementById('waitingTitle').textContent = 'Waiting for Opponent...';
-        document.getElementById('waitingSubtitle').textContent = 'Room is live! Share the code or link below. Extra joiners become spectators.';
-      });
+      // Publish retained room state so anyone joining immediately sees the active room
+      publishMessage(buildHostSyncPacket({ status: 'waiting' }), true);
 
-      state.peer.on('disconnected', () => {
-        if (state.peer && !state.peer.destroyed) {
-          try { state.peer.reconnect(); } catch (e) {}
+      state.heartbeatTimer = setInterval(() => {
+        if (state.mode === 'online_host') {
+          publishMessage(buildHostSyncPacket({
+            status: state.guestId ? 'playing' : 'waiting'
+          }), true);
         }
-      });
-
-      state.peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          startPrivateHostRoom();
-          return;
-        }
-        showToast('Connection error (' + err.type + '). Please try again.');
-        returnToMenu();
-      });
-
-      state.peer.on('connection', (conn) => {
-        let initialized = false;
-        const initializeJoiner = () => {
-          if (initialized) return;
-          initialized = true;
-
-          // 2nd person joins as opponent
-          if (!state.guestConn || !state.guestConn.open) {
-            state.guestConn = conn;
-            const guestColor = state.myColor === 'w' ? 'b' : 'w';
-
-            initMatchState();
-            setupGameUI('Private Match', code, state.spectatorConns.length);
-            showView('viewGame');
-            startHeartbeat(conn);
-
-            conn.send({
-              type: 'init',
-              role: 'player',
-              color: guestColor,
-              timeLimit: state.timeLimit,
-              fen: chess.fen(),
-              clocks: state.clocks,
-              history: chess.history(),
-              lastMove: state.lastMove,
-              spectatorCount: state.spectatorConns.length
-            });
-
-            attachHostConnectionListeners(conn, false);
-          } else {
-            // 3rd or more person joins -> Spectator Only!
-            state.spectatorConns.push(conn);
-            updateSpectatorBadge();
-            broadcastStateToAll();
-
-            conn.send({
-              type: 'init',
-              role: 'spectator',
-              color: 'w',
-              timeLimit: state.timeLimit,
-              fen: chess.fen(),
-              clocks: state.clocks,
-              history: chess.history(),
-              lastMove: state.lastMove,
-              gameOver: state.gameOver,
-              spectatorCount: state.spectatorConns.length
-            });
-
-            attachHostConnectionListeners(conn, true);
-          }
-        };
-
-        conn.on('open', initializeJoiner);
-        conn.on('data', (data) => {
-          if (data && data.type === 'hello') {
-            initializeJoiner();
-          }
-        });
-      });
+      }, 4000);
     }
 
-    function attachHostConnectionListeners(conn, isSpectator) {
-      conn.on('data', (data) => {
-        if (!data || data.type === 'ping' || data.type === 'hello') return;
-        if (isSpectator) return;
+    // --- JOIN EXISTING ROOM (BY CODE OR INVITE LINK) ---
+    async function joinRoomByCode(rawCode) {
+      const code = rawCode.trim().toUpperCase();
+      if (!code || code.length < 4) {
+        showToast('Please enter a valid room code.');
+        return;
+      }
 
-        if (data.type === 'move') {
+      cleanupRoomSession();
+      state.roomCode = code;
+      state.mode = 'joining';
+
+      document.getElementById('waitingTitle').textContent = 'Joining Room ' + code + '...';
+      document.getElementById('waitingSubtitle').textContent = 'Connecting to match...';
+      document.getElementById('shareBox').classList.add('hidden');
+      showView('viewWaiting');
+
+      await ensureRelayConnected();
+      subscribeTopic('ekkman/chessing/v2/room/' + code);
+
+      // Send join request immediately and retry every 1.5s until host responds
+      publishMessage({ type: 'join_request' }, false);
+      state.joinRetryTimer = setInterval(() => {
+        if (state.mode === 'joining') {
+          publishMessage({ type: 'join_request' }, false);
+        } else {
+          clearInterval(state.joinRetryTimer);
+          state.joinRetryTimer = null;
+        }
+      }, 1500);
+
+      // 14s timeout if room genuinely doesn't exist
+      setTimeout(() => {
+        if (state.mode === 'joining') {
+          showToast('Room ' + code + ' not found or host is offline.');
+          returnToMenu();
+        }
+      }, 14000);
+    }
+
+    document.getElementById('btnJoinCode').addEventListener('click', () => {
+      joinRoomByCode(document.getElementById('joinCodeInput').value);
+    });
+
+    document.getElementById('joinCodeInput').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        joinRoomByCode(document.getElementById('joinCodeInput').value);
+      }
+    });
+
+    // --- RANDOM ONLINE MATCHMAKING QUEUE ---
+    document.getElementById('btnQueue').addEventListener('click', async () => {
+      cleanupRoomSession();
+      state.mode = 'queuing';
+      document.getElementById('waitingTitle').textContent = 'Searching for Opponent...';
+      document.getElementById('waitingSubtitle').textContent = 'Matching you with an online player (10m)...';
+      document.getElementById('shareBox').classList.add('hidden');
+      showView('viewWaiting');
+
+      await ensureRelayConnected();
+      subscribeTopic('ekkman/chessing/v2/queue/blitz10');
+
+      const seekPacket = () => {
+        if (state.mode === 'queuing') {
+          publishMessage({ type: 'queue_seek' }, false);
+        }
+      };
+      seekPacket();
+      state.queueInterval = setInterval(seekPacket, 1800);
+    });
+
+    // --- CENTRAL RELAY MESSAGE HANDLER ---
+    function handleRelayMessage(msg) {
+      // 1. RANDOM QUEUE MATCHMAKING
+      if (state.mode === 'queuing') {
+        if (msg.type === 'queue_seek') {
+          // Deterministic tie-breaker: higher ID becomes Host, lower ID joins as Guest
+          if (MY_CLIENT_ID > msg.sender) {
+            clearInterval(state.queueInterval);
+            state.queueInterval = null;
+            const matchCode = generateRoomCode();
+            publishMessage({
+              type: 'queue_matched',
+              targetGuest: msg.sender,
+              roomCode: matchCode
+            }, false);
+
+            // Transition into Host room for this match
+            state.roomCode = matchCode;
+            state.mode = 'online_host';
+            state.timeLimit = 600;
+            state.myColor = Math.random() < 0.5 ? 'w' : 'b';
+            state.boardOrientation = state.myColor;
+            state.guestId = msg.sender;
+            state.spectatorIds.clear();
+
+            subscribeTopic('ekkman/chessing/v2/room/' + matchCode);
+            initMatchState();
+            setupGameUI('Online Match', matchCode, 0);
+            showView('viewGame');
+            publishMessage(buildHostSyncPacket({ status: 'playing' }), true);
+
+            state.heartbeatTimer = setInterval(() => {
+              if (state.mode === 'online_host') {
+                publishMessage(buildHostSyncPacket({ status: 'playing' }), true);
+              }
+            }, 4000);
+          }
+        } else if (msg.type === 'queue_matched' && msg.targetGuest === MY_CLIENT_ID) {
+          clearInterval(state.queueInterval);
+          state.queueInterval = null;
+          joinRoomByCode(msg.roomCode);
+        }
+        return;
+      }
+
+      // 2. HOST RECEIVES MESSAGES
+      if (state.mode === 'online_host') {
+        if (msg.type === 'join_request') {
+          if (!state.guestId) {
+            // Second player joins as Opponent!
+            state.guestId = msg.sender;
+            initMatchState();
+            setupGameUI('Private Match', state.roomCode, state.spectatorIds.size);
+            showView('viewGame');
+            publishMessage(buildHostSyncPacket({ status: 'playing' }), true);
+          } else if (msg.sender === state.guestId) {
+            // Re-sync existing guest
+            publishMessage(buildHostSyncPacket({ status: 'playing' }), true);
+          } else {
+            // 3rd+ person joins as Spectator!
+            state.spectatorIds.add(msg.sender);
+            updateSpectatorBadge();
+            publishMessage(buildHostSyncPacket({ status: 'playing' }), true);
+          }
+        } else if (msg.type === 'move' && msg.sender === state.guestId) {
           const guestColor = state.myColor === 'w' ? 'b' : 'w';
           if (chess.turn() !== guestColor || state.gameOver) return;
-
-          const moveObj = chess.move(data.move);
+          const moveObj = chess.move(msg.move);
           if (moveObj) {
             state.lastMove = { from: moveObj.from, to: moveObj.to };
             animatePieceGlide(moveObj.from, moveObj.to, moveObj.color + moveObj.piece);
@@ -1340,340 +1541,106 @@
             renderBoard();
             renderMoveHistory();
             updateTurnIndicators();
-            broadcastStateToAll();
+            publishMessage(buildHostSyncPacket({ status: 'playing' }), true);
           }
-        } else if (data.type === 'resign') {
+        } else if (msg.type === 'resign' && msg.sender === state.guestId) {
           if (!state.gameOver) {
             const guestColor = state.myColor === 'w' ? 'b' : 'w';
             const winner = guestColor === 'w' ? 'Black' : 'White';
             endGame(`${winner} Wins!`, 'Opponent resigned the match.');
-            broadcastStateToAll(`${winner} Wins!`, 'Opponent resigned the match.');
+            publishMessage(buildHostSyncPacket({
+              status: 'ended',
+              overTitle: `${winner} Wins!`,
+              overDesc: 'Opponent resigned the match.'
+            }), true);
           }
-        }
-      });
-
-      conn.on('close', () => {
-        if (isSpectator) {
-          state.spectatorConns = state.spectatorConns.filter(c => c !== conn);
-          updateSpectatorBadge();
-          broadcastStateToAll();
-        } else {
-          if (pingInterval) {
-            clearInterval(pingInterval);
-            pingInterval = null;
-          }
-          if (!state.gameOver) {
+        } else if (msg.type === 'leave') {
+          if (msg.sender === state.guestId && !state.gameOver) {
             const winner = state.myColor === 'w' ? 'White' : 'Black';
-            endGame(`${winner} Wins!`, 'Opponent disconnected.');
-            broadcastStateToAll(`${winner} Wins!`, 'Opponent disconnected.');
+            endGame(`${winner} Wins!`, 'Opponent left the match.');
+            publishMessage(buildHostSyncPacket({
+              status: 'ended',
+              overTitle: `${winner} Wins!`,
+              overDesc: 'Opponent left the match.'
+            }), true);
+          } else if (state.spectatorIds.has(msg.sender)) {
+            state.spectatorIds.delete(msg.sender);
+            updateSpectatorBadge();
+            publishMessage(buildHostSyncPacket({ status: state.guestId ? 'playing' : 'waiting' }), true);
           }
-          state.guestConn = null;
         }
-      });
-    }
-
-    function broadcastStateToAll(overTitle = null, overDesc = null) {
-      const payload = {
-        type: 'sync',
-        fen: chess.fen(),
-        clocks: state.clocks,
-        history: chess.history(),
-        lastMove: state.lastMove,
-        gameOver: state.gameOver,
-        overTitle,
-        overDesc,
-        spectatorCount: state.spectatorConns.length
-      };
-      if (state.guestConn && state.guestConn.open) {
-        state.guestConn.send(payload);
-      }
-      state.spectatorConns.forEach(c => {
-        if (c.open) c.send(payload);
-      });
-    }
-
-    // --- JOIN EXISTING ROOM (AS OPPONENT OR SPECTATOR) ---
-    function joinRoomByCode(rawCode) {
-      const code = rawCode.trim().toUpperCase();
-      if (!code || code.length < 4) {
-        showToast('Please enter a valid room code.');
         return;
       }
 
-      cleanupNetwork();
-      state.roomCode = code;
-
-      document.getElementById('waitingTitle').textContent = 'Connecting to Room ' + code + '...';
-      document.getElementById('waitingSubtitle').textContent = 'Establishing peer-to-peer connection...';
-      document.getElementById('shareBox').classList.add('hidden');
-      showView('viewWaiting');
-
-      state.peer = new Peer(PEER_CONFIG);
-      let connected = false;
-
-      const timeout = setTimeout(() => {
-        if (!connected && state.mode === 'lobby') {
-          showToast('Could not reach host (room not found or firewall blocked P2P).');
-          returnToMenu();
+      // 3. JOINING / GUEST / SPECTATOR RECEIVES ROOM STATE FROM HOST
+      if (msg.type === 'room_state') {
+        // Ignore stale retained messages older than 12 seconds while initially joining
+        if (state.mode === 'joining' && msg.ts && (Date.now() - msg.ts > 12000)) {
+          return;
         }
-      }, 15000);
 
-      state.peer.on('open', () => {
-        const conn = state.peer.connect('chessing-ekkman-room-' + code, {
-          reliable: true,
-          serialization: 'json'
-        });
-        state.hostConn = conn;
+        if (state.mode === 'joining') {
+          if (state.joinRetryTimer) {
+            clearInterval(state.joinRetryTimer);
+            state.joinRetryTimer = null;
+          }
+          state.timeLimit = msg.timeLimit;
+          chess.load(msg.fen);
+          state.clocks = msg.clocks;
+          state.lastMove = msg.lastMove;
+          state.gameOver = !!msg.gameOver;
 
-        conn.on('open', () => {
-          document.getElementById('waitingSubtitle').textContent = 'Connected! Syncing board...';
-          conn.send({ type: 'hello' });
-          startHeartbeat(conn);
-        });
-
-        conn.on('data', (data) => {
-          if (!data || data.type === 'ping') return;
-          connected = true;
-          clearTimeout(timeout);
-
-          if (data.type === 'init') {
-            state.timeLimit = data.timeLimit;
-            chess.load(data.fen);
-            state.clocks = data.clocks;
-            state.lastMove = data.lastMove;
-            state.gameOver = !!data.gameOver;
-
-            if (data.role === 'player') {
-              state.mode = 'online_guest';
-              state.myColor = data.color;
-              state.boardOrientation = data.color;
-              setupGameUI('Private Match', code, data.spectatorCount || 0);
-            } else {
-              state.mode = 'spectator';
-              state.myColor = null;
-              state.boardOrientation = 'w';
-              setupGameUI('Spectating Match', code, data.spectatorCount || 1);
-              showToast('Room is full (2/2 players). You joined as a Spectator!');
+          if (!msg.guestId || msg.guestId === MY_CLIENT_ID) {
+            // Confirm our player slot with the host
+            if (!msg.guestId) {
+              publishMessage({ type: 'join_request' }, false);
             }
-
-            startClockTicker();
-            renderBoard();
-            renderMoveHistoryFromList(data.history || []);
-            updateTurnIndicators();
-            showView('viewGame');
-          } else if (data.type === 'sync') {
-            const prevFen = chess.fen();
-            chess.load(data.fen);
-            if (prevFen !== data.fen && data.lastMove) {
-              const movedPiece = chess.get(data.lastMove.to);
-              if (movedPiece) {
-                animatePieceGlide(data.lastMove.from, data.lastMove.to, movedPiece.color + movedPiece.type);
-                playSfxForMove({ captured: false, san: '' });
-              }
-            }
-            state.clocks = data.clocks;
-            state.lastMove = data.lastMove;
-            updateSpectatorBadge(data.spectatorCount);
-            renderBoard();
-            renderMoveHistoryFromList(data.history || []);
-            updateTurnIndicators();
-
-            if (data.gameOver && !state.gameOver) {
-              endGame(data.overTitle || 'Game Over', data.overDesc || 'Match finished.');
-            }
-          }
-        });
-
-        conn.on('close', () => {
-          clearTimeout(timeout);
-          if (pingInterval) {
-            clearInterval(pingInterval);
-            pingInterval = null;
-          }
-          if (!state.gameOver && state.mode !== 'lobby') {
-            showToast('Host closed the room.');
-            returnToMenu();
-          }
-        });
-
-        conn.on('error', () => {
-          clearTimeout(timeout);
-          if (!connected) {
-            showToast('Room not found or host is offline.');
-            returnToMenu();
-          }
-        });
-      });
-
-      state.peer.on('error', (err) => {
-        clearTimeout(timeout);
-        if (err.type === 'peer-unavailable') {
-          showToast('Room ' + code + ' not found. Make sure the host keeps their tab open.');
-        } else {
-          showToast('Network error (' + err.type + ').');
-        }
-        returnToMenu();
-      });
-    }
-
-    document.getElementById('btnJoinCode').addEventListener('click', () => {
-      joinRoomByCode(document.getElementById('joinCodeInput').value);
-    });
-
-    // --- RANDOM MATCHMAKING QUEUE ---
-    document.getElementById('btnQueue').addEventListener('click', () => {
-      startRandomQueue();
-    });
-
-    function startRandomQueue() {
-      cleanupNetwork();
-      document.getElementById('waitingTitle').textContent = 'Searching for Opponent...';
-      document.getElementById('waitingSubtitle').textContent = 'Matching you with another queued player (10 min Blitz)...';
-      document.getElementById('shareBox').classList.add('hidden');
-      showView('viewWaiting');
-
-      state.queueSlotIndex = 0;
-      tryNextQueueSlot();
-    }
-
-    function tryNextQueueSlot() {
-      if (state.peer) {
-        try { state.peer.destroy(); } catch (e) {}
-        state.peer = null;
-      }
-
-      const slotId = 'chessing-ekkman-queue-slot-' + state.queueSlotIndex;
-      const peer = new Peer(slotId, PEER_CONFIG);
-      state.peer = peer;
-
-      peer.on('open', () => {
-        // Successfully claimed this queue slot as Host — wait for another player to connect!
-        state.mode = 'online_host';
-        state.roomCode = 'QUEUE-' + (state.queueSlotIndex + 1);
-        state.timeLimit = 600;
-        state.myColor = Math.random() < 0.5 ? 'w' : 'b';
-        state.boardOrientation = state.myColor;
-
-        peer.on('connection', (conn) => {
-          let started = false;
-          const startMatch = () => {
-            if (started) return;
-            started = true;
-            if (!state.guestConn || !state.guestConn.open) {
-              state.guestConn = conn;
-              const guestColor = state.myColor === 'w' ? 'b' : 'w';
-              initMatchState();
-              setupGameUI('Ranked Queue', 'LIVE', 0);
-              showView('viewGame');
-              startHeartbeat(conn);
-
-              conn.send({
-                type: 'init',
-                role: 'player',
-                color: guestColor,
-                timeLimit: 600,
-                fen: chess.fen(),
-                clocks: state.clocks,
-                history: [],
-                lastMove: null,
-                spectatorCount: 0
-              });
-              attachHostConnectionListeners(conn, false);
-            } else {
-              conn.close();
-            }
-          };
-
-          conn.on('open', startMatch);
-          conn.on('data', (d) => {
-            if (d && d.type === 'hello') startMatch();
-          });
-        });
-      });
-
-      peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          // Someone is ALREADY waiting in this slot! Connect to them immediately to start the match!
-          peer.destroy();
-          connectToWaitingQueueHost(slotId);
-        } else {
-          state.queueSlotIndex = (state.queueSlotIndex + 1) % QUEUE_SLOTS;
-          setTimeout(tryNextQueueSlot, 800);
-        }
-      });
-    }
-
-    function connectToWaitingQueueHost(targetPeerId) {
-      const guestPeer = new Peer(PEER_CONFIG);
-      state.peer = guestPeer;
-
-      guestPeer.on('open', () => {
-        const conn = guestPeer.connect(targetPeerId, { reliable: true, serialization: 'json' });
-        state.hostConn = conn;
-
-        const fallbackTimer = setTimeout(() => {
-          if (state.mode !== 'online_guest') {
-            state.queueSlotIndex = (state.queueSlotIndex + 1) % QUEUE_SLOTS;
-            tryNextQueueSlot();
-          }
-        }, 5000);
-
-        conn.on('open', () => {
-          conn.send({ type: 'hello' });
-          startHeartbeat(conn);
-        });
-
-        conn.on('data', (data) => {
-          if (!data || data.type === 'ping') return;
-          clearTimeout(fallbackTimer);
-          if (data.type === 'init') {
             state.mode = 'online_guest';
-            state.timeLimit = data.timeLimit;
-            state.myColor = data.color;
-            state.boardOrientation = data.color;
-            chess.load(data.fen);
-            state.clocks = data.clocks;
-            state.lastMove = null;
-            state.gameOver = false;
+            state.myColor = msg.guestColor;
+            state.boardOrientation = msg.guestColor;
+            setupGameUI('Private Match', state.roomCode, msg.spectatorCount || 0);
+          } else {
+            state.mode = 'spectator';
+            state.myColor = null;
+            state.boardOrientation = 'w';
+            setupGameUI('Spectating Match', state.roomCode, msg.spectatorCount || 1);
+            showToast('Room is full (2/2 players). Joined as Spectator.');
+          }
 
-            setupGameUI('Ranked Queue', 'LIVE', 0);
-            startClockTicker();
-            renderBoard();
-            renderMoveHistory();
-            updateTurnIndicators();
-            showView('viewGame');
-          } else if (data.type === 'sync') {
-            const prevFen = chess.fen();
-            chess.load(data.fen);
-            if (prevFen !== data.fen && data.lastMove) {
-              const movedPiece = chess.get(data.lastMove.to);
-              if (movedPiece) {
-                animatePieceGlide(data.lastMove.from, data.lastMove.to, movedPiece.color + movedPiece.type);
-                playSfxForMove({ captured: false, san: '' });
-              }
+          startClockTicker();
+          renderBoard();
+          renderMoveHistoryFromList(msg.history || []);
+          updateTurnIndicators();
+          showView('viewGame');
+
+          if (msg.gameOver) {
+            endGame(msg.overTitle || 'Game Over', msg.overDesc || 'Match finished.');
+          }
+          return;
+        }
+
+        if (state.mode === 'online_guest' || state.mode === 'spectator') {
+          const prevFen = chess.fen();
+          chess.load(msg.fen);
+          if (prevFen !== msg.fen && msg.lastMove) {
+            const movedPiece = chess.get(msg.lastMove.to);
+            if (movedPiece) {
+              animatePieceGlide(msg.lastMove.from, msg.lastMove.to, movedPiece.color + movedPiece.type);
+              playSfxForMove({ captured: false, san: '' });
             }
-            state.clocks = data.clocks;
-            state.lastMove = data.lastMove;
-            renderBoard();
-            renderMoveHistoryFromList(data.history || []);
-            updateTurnIndicators();
+          }
+          state.clocks = msg.clocks;
+          state.lastMove = msg.lastMove;
+          updateSpectatorBadge(msg.spectatorCount);
+          renderBoard();
+          renderMoveHistoryFromList(msg.history || []);
+          updateTurnIndicators();
 
-            if (data.gameOver && !state.gameOver) {
-              endGame(data.overTitle || 'Game Over', data.overDesc || 'Match finished.');
-            }
+          if (msg.gameOver && !state.gameOver) {
+            endGame(msg.overTitle || 'Game Over', msg.overDesc || 'Match finished.');
           }
-        });
-
-        conn.on('close', () => {
-          if (pingInterval) {
-            clearInterval(pingInterval);
-            pingInterval = null;
-          }
-          if (!state.gameOver && state.mode === 'online_guest') {
-            endGame('Opponent Left', 'Your opponent disconnected from the queue match.');
-          }
-        });
-      });
+        }
+      }
     }
 
     // =========================================================================
@@ -1700,18 +1667,18 @@
       const shareBtn = document.getElementById('btnShareInGame');
       const playerCtrls = document.getElementById('playerControls');
 
-      if (state.mode === 'online_host' || state.mode === 'online_guest') {
+      if (state.mode === 'online_host' || state.mode === 'online_guest' || state.mode === 'spectator') {
         shareBtn.classList.remove('hidden');
       } else {
         shareBtn.classList.add('hidden');
       }
 
       if (state.mode === 'spectator') {
-        playerCtrls.innerHTML = `<button onclick="flipBoardView()" class="btn-secondary col-span-2 py-2 rounded-lg text-xs font-medium">Flip Board</button>`;
+        playerCtrls.innerHTML = `<button onclick="flipBoardView()" class="btn-secondary col-span-2 py-2.5 rounded-xl text-xs font-medium">Flip Board</button>`;
       } else {
         playerCtrls.innerHTML = `
-          <button onclick="flipBoardView()" class="btn-secondary py-2 rounded-lg text-xs font-medium">Flip Board</button>
-          <button onclick="resignGame()" class="py-2 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/25 hover:bg-red-500/20">Resign</button>
+          <button onclick="flipBoardView()" class="btn-secondary py-2.5 rounded-xl text-xs font-medium">Flip Board</button>
+          <button onclick="resignGame()" class="py-2.5 rounded-xl text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/25 hover:bg-red-500/20">Resign</button>
         `;
       }
 
@@ -1720,14 +1687,14 @@
     }
 
     function updateSpectatorBadge(count) {
-      const c = typeof count === 'number' ? count : state.spectatorConns.length;
+      const c = typeof count === 'number' ? count : state.spectatorIds.size;
       document.getElementById('spectatorCountNum').textContent = c;
     }
 
     function updatePlayerLabels() {
       const bottomIsWhite = state.boardOrientation === 'w';
-      const whiteDot = `<span class="w-3.5 h-3.5 rounded-full bg-white border border-slate-400"></span>`;
-      const blackDot = `<span class="w-3.5 h-3.5 rounded-full bg-slate-900 border border-slate-400"></span>`;
+      const whiteDot = `<span class="w-3.5 h-3.5 rounded-full bg-white border border-neutral-400"></span>`;
+      const blackDot = `<span class="w-3.5 h-3.5 rounded-full bg-neutral-900 border border-neutral-400"></span>`;
       document.getElementById('bottomAvatar').innerHTML = bottomIsWhite ? whiteDot : blackDot;
       document.getElementById('topAvatar').innerHTML = bottomIsWhite ? blackDot : whiteDot;
 
@@ -1758,7 +1725,6 @@
       renderBoard();
     }
 
-    // Smooth visual glide of a piece from source square to destination square
     function animatePieceGlide(fromSq, toSq, pieceKey) {
       const animLayer = document.getElementById('animLayer');
       if (!animLayer || !PIECE_SVGS[pieceKey]) return;
@@ -1850,7 +1816,6 @@
             sqEl.innerHTML += PIECE_SVGS[piece.color + piece.type];
           }
 
-          // Legal move indicators
           const targetMove = state.legalMoves.find(m => m.to === sqName);
           if (targetMove) {
             const indicator = document.createElement('div');
@@ -1858,7 +1823,6 @@
             sqEl.appendChild(indicator);
           }
 
-          // Coordinate labels on edges
           if (fIdx === 0) {
             const rSpan = document.createElement('span');
             rSpan.className = `coord-rank ${isLight ? 'text-sq-dark' : 'text-sq-light'}`;
@@ -1883,13 +1847,11 @@
 
       const turn = chess.turn();
       if ((state.mode === 'online_host' || state.mode === 'online_guest') && turn !== state.myColor) {
-        return; // Not your turn
+        return;
       }
 
-      // Check if clicking a legal destination square
       const chosenMove = state.legalMoves.find(m => m.to === sqName);
       if (chosenMove) {
-        // Handle Pawn Promotion
         if (chosenMove.flags.includes('p')) {
           openPromotionModal(chosenMove.from, chosenMove.to, turn);
           return;
@@ -1898,7 +1860,6 @@
         return;
       }
 
-      // Otherwise, select own piece
       const clickedPiece = chess.get(sqName);
       if (clickedPiece && clickedPiece.color === turn) {
         if (state.selectedSquare === sqName) {
@@ -1922,7 +1883,7 @@
 
       ['q', 'r', 'b', 'n'].forEach(pType => {
         const btn = document.createElement('button');
-        btn.className = 'p-2 rounded-lg surface-sub flex items-center justify-center aspect-square';
+        btn.className = 'p-2 rounded-xl surface-sub flex items-center justify-center aspect-square';
         btn.innerHTML = PIECE_SVGS[color + pType];
         btn.onclick = () => {
           modal.classList.add('hidden');
@@ -1936,7 +1897,7 @@
 
     function executeMove(moveInput) {
       const moveObj = chess.move(moveInput);
-      if (!moveObj) return; // Strict validation: never allow invalid moves
+      if (!moveObj) return;
 
       state.selectedSquare = null;
       state.legalMoves = [];
@@ -1956,45 +1917,57 @@
       updateTurnIndicators();
 
       if (state.mode === 'online_host') {
-        broadcastStateToAll();
-      } else if (state.mode === 'online_guest' && state.hostConn && state.hostConn.open) {
-        state.hostConn.send({ type: 'move', move: moveInput });
+        publishMessage(buildHostSyncPacket({ status: state.gameOver ? 'ended' : 'playing' }), true);
+      } else if (state.mode === 'online_guest') {
+        publishMessage({ type: 'move', move: moveInput }, false);
       }
     }
 
     function checkGameEndConditions() {
+      let overTitle = null;
+      let overDesc = null;
+
       if (chess.in_checkmate()) {
         const winner = chess.turn() === 'w' ? 'Black' : 'White';
-        endGame('Checkmate!', `${winner} wins the game.`);
-        if (state.mode === 'online_host') broadcastStateToAll('Checkmate!', `${winner} wins the game.`);
+        overTitle = 'Checkmate!';
+        overDesc = `${winner} wins the game.`;
       } else if (chess.in_stalemate()) {
-        endGame('Draw — Stalemate', 'No legal moves remaining.');
-        if (state.mode === 'online_host') broadcastStateToAll('Draw — Stalemate', 'No legal moves remaining.');
+        overTitle = 'Draw — Stalemate';
+        overDesc = 'No legal moves remaining.';
       } else if (chess.in_threefold_repetition()) {
-        endGame('Draw — Repetition', 'Threefold repetition reached.');
-        if (state.mode === 'online_host') broadcastStateToAll('Draw — Repetition', 'Threefold repetition reached.');
+        overTitle = 'Draw — Repetition';
+        overDesc = 'Threefold repetition reached.';
       } else if (chess.insufficient_material()) {
-        endGame('Draw — Insufficient Material', 'Neither player can checkmate.');
-        if (state.mode === 'online_host') broadcastStateToAll('Draw — Insufficient Material', 'Neither player can checkmate.');
+        overTitle = 'Draw — Insufficient Material';
+        overDesc = 'Neither player can checkmate.';
       } else if (chess.in_draw()) {
-        endGame('Draw', 'The game ended in a draw.');
-        if (state.mode === 'online_host') broadcastStateToAll('Draw', 'The game ended in a draw.');
+        overTitle = 'Draw';
+        overDesc = 'The game ended in a draw.';
+      }
+
+      if (overTitle) {
+        endGame(overTitle, overDesc);
+        if (state.mode === 'online_host') {
+          publishMessage(buildHostSyncPacket({ status: 'ended', overTitle, overDesc }), true);
+        }
       }
     }
 
     function resignGame() {
       if (state.gameOver || state.mode === 'spectator') return;
-      if (state.mode === 'online_guest' && state.hostConn && state.hostConn.open) {
-        state.hostConn.send({ type: 'resign' });
+      if (state.mode === 'online_guest') {
+        publishMessage({ type: 'resign' }, false);
         const winner = state.myColor === 'w' ? 'Black' : 'White';
         endGame(`${winner} Wins!`, 'You resigned the match.');
         return;
       }
       const loserColor = state.mode === 'local' ? chess.turn() : state.myColor;
       const winner = loserColor === 'w' ? 'Black' : 'White';
-      endGame(`${winner} Wins!`, `${loserColor === 'w' ? 'White' : 'Black'} resigned.`);
+      const title = `${winner} Wins!`;
+      const desc = `${loserColor === 'w' ? 'White' : 'Black'} resigned.`;
+      endGame(title, desc);
       if (state.mode === 'online_host') {
-        broadcastStateToAll(`${winner} Wins!`, `${loserColor === 'w' ? 'White' : 'Black'} resigned.`);
+        publishMessage(buildHostSyncPacket({ status: 'ended', overTitle: title, overDesc: desc }), true);
       }
     }
 
@@ -2098,17 +2071,23 @@
 
         if (state.clocks[activeColor] === 0 && state.mode !== 'online_guest' && state.mode !== 'spectator') {
           const winner = activeColor === 'w' ? 'Black' : 'White';
-          endGame('Time Out!', `${winner} wins on time.`);
+          const title = 'Time Out!';
+          const desc = `${winner} wins on time.`;
+          endGame(title, desc);
           if (state.mode === 'online_host') {
-            broadcastStateToAll('Time Out!', `${winner} wins on time.`);
+            publishMessage(buildHostSyncPacket({ status: 'ended', overTitle: title, overDesc: desc }), true);
           }
         }
       }, 1000);
     }
 
     // =========================================================================
-    // 11. AUTO-JOIN FROM URL INVITE LINK (?room=XXXXXX)
+    // 11. AUTO-JOIN FROM URL INVITE LINK (?room=XXXXXX) & CLEANUP
     // =========================================================================
+    window.addEventListener('beforeunload', () => {
+      cleanupRoomSession();
+    });
+
     window.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(window.location.search);
       const roomParam = params.get('room');
