@@ -194,6 +194,23 @@
       pointer-events: none;
     }
 
+    .square.pending-from::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-color: rgba(16, 185, 129, 0.34);
+      pointer-events: none;
+    }
+
+    .square.pending-to::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-color: rgba(16, 185, 129, 0.52);
+      box-shadow: inset 0 0 0 2px rgba(16, 185, 129, 0.9);
+      pointer-events: none;
+    }
+
     .square.in-check {
       background: radial-gradient(circle, rgba(220, 38, 38, 0.88) 0%, rgba(185, 28, 28, 0.45) 75%, transparent 100%) !important;
     }
@@ -310,7 +327,7 @@
         </div>
       </button>
 
-      <!-- Right Controls: Server Status, Music Toggle, Theme Switch -->
+      <!-- Right Controls: Server Status, Music Toggle, Settings, Theme Switch -->
       <div class="flex items-center gap-2">
         <div id="netBadge" class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium surface-sub"
              style="color: var(--text-secondary);">
@@ -324,6 +341,12 @@
             <span></span><span></span><span></span><span></span>
           </span>
           <span id="musicBtnLabel" class="hidden sm:inline">Music: On</span>
+        </button>
+
+        <button id="settingsToggleBtn" onclick="openSettingsModal()" aria-label="Open settings" title="Settings"
+          class="btn-secondary rounded-md px-3 py-1.5 text-xs font-medium inline-flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span class="hidden sm:inline">Settings</span>
         </button>
 
         <button id="themeToggleBtn" aria-label="Toggle light or dark theme" title="Switch Light / Dark Mode"
@@ -489,20 +512,23 @@
 
           <!-- Top Player Bar (Opponent) -->
           <div class="w-full surface-card rounded-xl px-3.5 py-2.5 flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <div id="topAvatar" class="w-7 h-7 rounded-lg flex items-center justify-center surface-sub">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div id="topAvatar" class="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center surface-sub">
                 <span class="w-3 h-3 rounded-full bg-neutral-900 border border-neutral-400"></span>
               </div>
-              <div>
+              <div class="min-w-0">
                 <div class="flex items-center gap-2">
-                  <span id="topName" class="text-sm font-medium">Opponent</span>
+                  <span id="topName" class="text-sm font-medium truncate">Opponent</span>
                   <span id="topTurnBadge" class="hidden text-[10px] font-semibold px-1.5 py-0.5 rounded"
                         style="background-color: var(--accent); color: var(--accent-text);">TURN</span>
                 </div>
-                <span id="topRoleLabel" class="text-[11px]" style="color: var(--text-secondary);">Black</span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span id="topRoleLabel" class="text-[11px]" style="color: var(--text-secondary);">Black</span>
+                  <div id="topMaterialBar" class="flex items-center gap-1 text-[11px] font-mono-clock"></div>
+                </div>
               </div>
             </div>
-            <div id="topClock" class="font-mono-clock text-base font-semibold px-3 py-1 rounded-lg surface-sub">10:00</div>
+            <div id="topClock" class="font-mono-clock text-base font-semibold px-3 py-1 rounded-lg surface-sub flex-shrink-0">10:00</div>
           </div>
 
           <!-- Responsive Chessboard -->
@@ -511,22 +537,37 @@
             <div id="animLayer" class="anim-layer"></div>
           </div>
 
+          <!-- Move Confirmation Action Bar (Visible only when user enables Confirm Moves and selects a move) -->
+          <div id="confirmMoveBar" class="hidden w-full surface-card rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2 border-emerald-500/40">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0"></span>
+              <span id="confirmMoveLabel" class="text-xs font-medium truncate">Confirm move: e2 → e4?</span>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <button onclick="cancelPendingMove()" class="btn-secondary px-3 py-1.5 rounded-lg text-xs font-medium">Cancel</button>
+              <button onclick="confirmPendingMove()" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 text-neutral-950 hover:bg-emerald-400">Confirm</button>
+            </div>
+          </div>
+
           <!-- Bottom Player Bar (You) -->
           <div class="w-full surface-card rounded-xl px-3.5 py-2.5 flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <div id="bottomAvatar" class="w-7 h-7 rounded-lg flex items-center justify-center surface-sub">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <div id="bottomAvatar" class="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center surface-sub">
                 <span class="w-3 h-3 rounded-full bg-white border border-neutral-400"></span>
               </div>
-              <div>
+              <div class="min-w-0">
                 <div class="flex items-center gap-2">
-                  <span id="bottomName" class="text-sm font-medium">You</span>
+                  <span id="bottomName" class="text-sm font-medium truncate">You</span>
                   <span id="bottomTurnBadge" class="hidden text-[10px] font-semibold px-1.5 py-0.5 rounded"
                         style="background-color: var(--accent); color: var(--accent-text);">TURN</span>
                 </div>
-                <span id="bottomRoleLabel" class="text-[11px]" style="color: var(--text-secondary);">White</span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span id="bottomRoleLabel" class="text-[11px]" style="color: var(--text-secondary);">White</span>
+                  <div id="bottomMaterialBar" class="flex items-center gap-1 text-[11px] font-mono-clock"></div>
+                </div>
               </div>
             </div>
-            <div id="bottomClock" class="font-mono-clock text-base font-semibold px-3 py-1 rounded-lg surface-sub">10:00</div>
+            <div id="bottomClock" class="font-mono-clock text-base font-semibold px-3 py-1 rounded-lg surface-sub flex-shrink-0">10:00</div>
           </div>
         </div>
 
@@ -590,6 +631,46 @@
     <div class="modal-box surface-card rounded-2xl p-5 max-w-xs w-full text-center space-y-4">
       <h3 class="font-semibold text-sm">Promote Pawn</h3>
       <div class="grid grid-cols-4 gap-2" id="promotionChoices"></div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal-backdrop hidden fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
+    <div class="modal-box surface-card rounded-2xl p-5 max-w-sm w-full space-y-4">
+      <div class="flex items-center justify-between border-b pb-3" style="border-color: var(--border-color);">
+        <h3 class="font-semibold text-base">Settings</h3>
+        <button onclick="closeSettingsModal()" class="text-xs font-medium px-2.5 py-1 rounded-md surface-sub hover:opacity-80">Close</button>
+      </div>
+
+      <div class="space-y-3">
+        <!-- Confirm Every Move Toggle -->
+        <div class="p-3.5 rounded-xl surface-sub flex items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-medium">Confirm every move</div>
+            <div class="text-[11px] mt-0.5" style="color: var(--text-secondary);">
+              Require clicking Confirm before sending any of your moves (applies only to you in all modes).
+            </div>
+          </div>
+          <button id="toggleConfirmMovesBtn" type="button" onclick="toggleConfirmMovesSetting()" aria-pressed="false"
+            class="w-11 h-6 rounded-full p-0.5 transition-colors flex-shrink-0 border"
+            style="background-color: var(--bg-primary); border-color: var(--border-color);">
+            <span id="toggleConfirmMovesKnob" class="block w-4 h-4 rounded-full bg-neutral-400 transition-transform"></span>
+          </button>
+        </div>
+
+        <!-- Material Advantage Display Info -->
+        <div class="p-3.5 rounded-xl surface-sub flex items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-medium">Material score (+1, +3, +9...)</div>
+            <div class="text-[11px] mt-0.5" style="color: var(--text-secondary);">
+              Shows captured pieces and live material lead next to player names.
+            </div>
+          </div>
+          <span class="text-[11px] font-mono-clock px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Active</span>
+        </div>
+      </div>
+
+      <button onclick="closeSettingsModal()" class="btn-primary w-full py-2.5 rounded-xl text-xs font-semibold">Done</button>
     </div>
   </div>
 
@@ -1053,6 +1134,8 @@
       selectedSquare: null,
       legalMoves: [],
       lastMove: null,
+      pendingMove: null, // { from, to, promotion? } when confirmMoveEnabled is true
+      confirmMoveEnabled: localStorage.getItem('chessing_confirm_moves') === 'true',
       timeLimit: 600,
       clocks: { w: 600, b: 600 },
       clockInterval: null,
@@ -1257,9 +1340,80 @@
     function returnToMenu() {
       cleanupRoomSession();
       closeGameOverModal();
+      cancelPendingMove();
       document.getElementById('promotionModal').classList.add('hidden');
       state.mode = 'lobby';
       showView('viewLobby');
+    }
+
+    // =========================================================================
+    // 6B. SETTINGS MODAL & CONFIRM MOVES PREFERENCE (LOCAL TO USER)
+    // =========================================================================
+    function syncSettingsUI() {
+      const btn = document.getElementById('toggleConfirmMovesBtn');
+      const knob = document.getElementById('toggleConfirmMovesKnob');
+      if (!btn || !knob) return;
+
+      btn.setAttribute('aria-pressed', state.confirmMoveEnabled ? 'true' : 'false');
+      if (state.confirmMoveEnabled) {
+        btn.style.backgroundColor = '#10b981';
+        btn.style.borderColor = '#10b981';
+        knob.style.transform = 'translateX(20px)';
+        knob.style.backgroundColor = '#ffffff';
+      } else {
+        btn.style.backgroundColor = 'var(--bg-primary)';
+        btn.style.borderColor = 'var(--border-color)';
+        knob.style.transform = 'translateX(0px)';
+        knob.style.backgroundColor = '#9ca3af';
+      }
+    }
+
+    function openSettingsModal() {
+      syncSettingsUI();
+      document.getElementById('settingsModal').classList.remove('hidden');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settingsModal').classList.add('hidden');
+    }
+
+    function toggleConfirmMovesSetting() {
+      state.confirmMoveEnabled = !state.confirmMoveEnabled;
+      localStorage.setItem('chessing_confirm_moves', String(state.confirmMoveEnabled));
+      syncSettingsUI();
+      if (!state.confirmMoveEnabled && state.pendingMove) {
+        cancelPendingMove();
+      }
+    }
+
+    function setPendingMove(moveObj) {
+      state.pendingMove = moveObj;
+      state.selectedSquare = null;
+      state.legalMoves = [];
+
+      const bar = document.getElementById('confirmMoveBar');
+      const label = document.getElementById('confirmMoveLabel');
+      const promoSuffix = moveObj.promotion ? `=${moveObj.promotion.toUpperCase()}` : '';
+      label.textContent = `Confirm move: ${moveObj.from} → ${moveObj.to}${promoSuffix}?`;
+      bar.classList.remove('hidden');
+      renderBoard();
+    }
+
+    function cancelPendingMove() {
+      state.pendingMove = null;
+      const bar = document.getElementById('confirmMoveBar');
+      if (bar) bar.classList.add('hidden');
+      if (state.mode !== 'lobby') {
+        renderBoard();
+      }
+    }
+
+    function confirmPendingMove() {
+      if (!state.pendingMove) return;
+      const moveToPlay = { ...state.pendingMove };
+      state.pendingMove = null;
+      document.getElementById('confirmMoveBar').classList.add('hidden');
+      executeMove(moveToPlay);
     }
 
     // =========================================================================
@@ -1534,11 +1688,13 @@
           if (chess.turn() !== guestColor || state.gameOver) return;
           const moveObj = chess.move(msg.move);
           if (moveObj) {
+            cancelPendingMove();
             state.lastMove = { from: moveObj.from, to: moveObj.to };
             animatePieceGlide(moveObj.from, moveObj.to, moveObj.color + moveObj.piece);
             playSfxForMove(moveObj);
             checkGameEndConditions();
             renderBoard();
+            renderMaterialAdvantage();
             renderMoveHistory();
             updateTurnIndicators();
             publishMessage(buildHostSyncPacket({ status: 'playing' }), true);
@@ -1609,6 +1765,7 @@
 
           startClockTicker();
           renderBoard();
+          renderMaterialAdvantage();
           renderMoveHistoryFromList(msg.history || []);
           updateTurnIndicators();
           showView('viewGame');
@@ -1631,8 +1788,12 @@
           }
           state.clocks = msg.clocks;
           state.lastMove = msg.lastMove;
+          if (prevFen !== msg.fen) {
+            cancelPendingMove();
+          }
           updateSpectatorBadge(msg.spectatorCount);
           renderBoard();
+          renderMaterialAdvantage();
           renderMoveHistoryFromList(msg.history || []);
           updateTurnIndicators();
 
@@ -1651,10 +1812,14 @@
       state.selectedSquare = null;
       state.legalMoves = [];
       state.lastMove = null;
+      state.pendingMove = null;
+      const bar = document.getElementById('confirmMoveBar');
+      if (bar) bar.classList.add('hidden');
       state.gameOver = false;
       state.clocks = { w: state.timeLimit, b: state.timeLimit };
       startClockTicker();
       renderBoard();
+      renderMaterialAdvantage();
       renderMoveHistory();
       updateTurnIndicators();
     }
@@ -1720,9 +1885,94 @@
     function flipBoardView() {
       state.boardOrientation = state.boardOrientation === 'w' ? 'b' : 'w';
       updatePlayerLabels();
+      renderMaterialAdvantage();
       updateClockDisplays();
       updateTurnIndicators();
       renderBoard();
+    }
+
+    // =========================================================================
+    // 9B. CHESS.COM STYLE MATERIAL SCORE & CAPTURED PIECES ADVANTAGE
+    // =========================================================================
+    function computeMaterialSummary() {
+      const startingCounts = { p: 8, n: 2, b: 2, r: 2, q: 1 };
+      const pieceValues = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+      const pieceGlyphs = {
+        w: { p: '♙', n: '♘', b: '♗', r: '♖', q: '♕' },
+        b: { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛' }
+      };
+
+      const board = chess.board();
+      const alive = {
+        w: { p: 0, n: 0, b: 0, r: 0, q: 0 },
+        b: { p: 0, n: 0, b: 0, r: 0, q: 0 }
+      };
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const cell = board[r][c];
+          if (cell && cell.type !== 'k') {
+            alive[cell.color][cell.type]++;
+          }
+        }
+      }
+
+      // Pieces captured BY White (missing Black pieces) and BY Black (missing White pieces)
+      const capturedByWhite = [];
+      const capturedByBlack = [];
+      let whiteScore = 0;
+      let blackScore = 0;
+
+      ['p', 'n', 'b', 'r', 'q'].forEach(type => {
+        whiteScore += alive.w[type] * pieceValues[type];
+        blackScore += alive.b[type] * pieceValues[type];
+
+        const missingBlack = Math.max(0, startingCounts[type] - alive.b[type]);
+        for (let i = 0; i < missingBlack; i++) {
+          capturedByWhite.push(pieceGlyphs.b[type]);
+        }
+
+        const missingWhite = Math.max(0, startingCounts[type] - alive.w[type]);
+        for (let i = 0; i < missingWhite; i++) {
+          capturedByBlack.push(pieceGlyphs.w[type]);
+        }
+      });
+
+      const diff = whiteScore - blackScore;
+      return {
+        w: {
+          captured: capturedByWhite.join(''),
+          advantage: diff > 0 ? `+${diff}` : ''
+        },
+        b: {
+          captured: capturedByBlack.join(''),
+          advantage: diff < 0 ? `+${Math.abs(diff)}` : ''
+        }
+      };
+    }
+
+    function renderMaterialAdvantage() {
+      const bottomBar = document.getElementById('bottomMaterialBar');
+      const topBar = document.getElementById('topMaterialBar');
+      if (!bottomBar || !topBar) return;
+
+      const summary = computeMaterialSummary();
+      const bottomColor = state.boardOrientation;
+      const topColor = bottomColor === 'w' ? 'b' : 'w';
+
+      const formatBar = (info) => {
+        if (!info.captured && !info.advantage) return '';
+        const iconsHtml = info.captured
+          ? `<span class="tracking-tighter opacity-85" style="color: var(--text-primary);">${info.captured}</span>`
+          : '';
+        const badgeHtml = info.advantage
+          ? `<span class="px-1.5 py-0.2 rounded font-semibold text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">${info.advantage}</span>`
+          : '';
+        return `${iconsHtml} ${badgeHtml}`;
+      };
+
+      bottomBar.innerHTML = formatBar(summary[bottomColor]);
+      topBar.innerHTML = formatBar(summary[topColor]);
     }
 
     function animatePieceGlide(fromSq, toSq, pieceKey) {
@@ -1807,10 +2057,29 @@
           if (state.lastMove && (state.lastMove.from === sqName || state.lastMove.to === sqName)) {
             sqEl.classList.add('last-move');
           }
+          if (state.pendingMove) {
+            if (state.pendingMove.from === sqName) sqEl.classList.add('pending-from');
+            if (state.pendingMove.to === sqName) sqEl.classList.add('pending-to');
+          }
 
-          const piece = chess.get(sqName);
+          let piece = chess.get(sqName);
+          // Preview pending move piece position on board before confirming
+          if (state.pendingMove) {
+            if (sqName === state.pendingMove.from) {
+              piece = null;
+            } else if (sqName === state.pendingMove.to) {
+              const movingPiece = chess.get(state.pendingMove.from);
+              if (movingPiece) {
+                piece = {
+                  color: movingPiece.color,
+                  type: state.pendingMove.promotion || movingPiece.type
+                };
+              }
+            }
+          }
+
           if (piece) {
-            if (inCheck && piece.type === 'k' && piece.color === turnColor) {
+            if (inCheck && piece.type === 'k' && piece.color === turnColor && !state.pendingMove) {
               sqEl.classList.add('in-check');
             }
             sqEl.innerHTML += PIECE_SVGS[piece.color + piece.type];
@@ -1850,10 +2119,23 @@
         return;
       }
 
+      // If user has a pending move waiting for confirmation, clicking elsewhere cancels/reselects
+      if (state.pendingMove) {
+        if (sqName === state.pendingMove.to) {
+          confirmPendingMove();
+          return;
+        }
+        cancelPendingMove();
+      }
+
       const chosenMove = state.legalMoves.find(m => m.to === sqName);
       if (chosenMove) {
         if (chosenMove.flags.includes('p')) {
           openPromotionModal(chosenMove.from, chosenMove.to, turn);
+          return;
+        }
+        if (state.confirmMoveEnabled) {
+          setPendingMove({ from: chosenMove.from, to: chosenMove.to });
           return;
         }
         executeMove({ from: chosenMove.from, to: chosenMove.to });
@@ -1887,7 +2169,11 @@
         btn.innerHTML = PIECE_SVGS[color + pType];
         btn.onclick = () => {
           modal.classList.add('hidden');
-          executeMove({ from, to, promotion: pType });
+          if (state.confirmMoveEnabled) {
+            setPendingMove({ from, to, promotion: pType });
+          } else {
+            executeMove({ from, to, promotion: pType });
+          }
         };
         container.appendChild(btn);
       });
@@ -1913,6 +2199,7 @@
 
       checkGameEndConditions();
       renderBoard();
+      renderMaterialAdvantage();
       renderMoveHistory();
       updateTurnIndicators();
 
